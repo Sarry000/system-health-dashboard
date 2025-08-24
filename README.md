@@ -1,167 +1,145 @@
-Python Utility Update: Always Report
-This guide provides the updated code for the utility.py script. This version will send a report to the server every 15 minutes, ensuring the "LAST SEEN" timestamp is always up-to-date.
+# System Health Monitoring Dashboard
 
-The Updated utility.py
-The only change is in the main() function at the bottom. I've removed the if current_state != last_state: check.
+This project is a complete, end-to-end system for monitoring the security compliance of multiple computers from a central web-based dashboard. It consists of a cross-platform client utility, a backend API server, and a frontend admin dashboard.
 
-Replace the entire contents of your utility.py file with this new code.
+![Dashboard Screenshot](https://i.imgur.com/your-screenshot-url.png)
+*(Note: You will need to take a screenshot of your final dashboard, upload it to a site like [Imgur](https://imgur.com/upload), and replace the URL above.)*
 
-import json
-import os
-import platform
-import socket
-import subprocess
-import hashlib
-import time
-import requests
+---
 
-# --- CONFIGURATION ---
-API_ENDPOINT = "http://localhost:3001/api/report"
-CHECK_INTERVAL_SECONDS = 30  # 30 seconds for testing
-STATE_FILE_NAME = "state.json"
+## Features
 
-# --- HELPER FUNCTIONS ---
+* **Centralized Monitoring**: View the health status of all registered machines in a single, easy-to-use interface.
+* **Real-time Updates**: The dashboard polls for new data, providing a near real-time view of your network's health.
+* **Key Security Checks**: The client utility monitors critical security policies:
+    * **Disk Encryption**: Verifies if the main system drive is encrypted (e.g., BitLocker on Windows).
+    * **Antivirus Status**: Checks if a common antivirus program is running.
+    * **Sleep Policy Compliance**: Ensures the machine is set to sleep or lock after 10 minutes or less of inactivity.
+* **Cross-Platform Utility**: The Python-based utility is designed to run on Windows, macOS, and Linux.
+* **Modern Tech Stack**: Built with a robust and scalable stack including React, Node.js, and Google Firestore.
 
-def get_machine_id():
-    """Generates a unique and stable ID for the machine based on its hostname."""
-    hostname = socket.gethostname()
-    return hashlib.sha256(hostname.encode()).hexdigest()
+---
 
-def save_state(state):
-    """Saves the current system info state to a JSON file."""
-    try:
-        with open(STATE_FILE_NAME, 'w') as f:
-            json.dump(state, f, indent=2)
-    except Exception as e:
-        print(f"Error saving state: {e}")
+## Tech Stack
 
-def load_state():
-    """Loads the last known system info state from the JSON file."""
-    if not os.path.exists(STATE_FILE_NAME):
-        return None
-    try:
-        with open(STATE_FILE_NAME, 'r') as f:
-            return json.load(f)
-    except Exception as e:
-        print(f"Error loading state: {e}")
-        return None
+* **Frontend**: React (Vite)
+* **Backend**: Node.js, Express.js
+* **Database**: Google Firestore
+* **Client Utility**: Python
 
-# --- SYSTEM CHECKS ---
+---
 
-def check_disk_encryption():
-    """Checks disk encryption status. NOTE: This is a simplified check."""
-    system = platform.system()
-    try:
-        if system == "Windows":
-            result = subprocess.run(
-                ["manage-bde", "-status", "C:"],
-                capture_output=True, text=True, check=True, shell=True
-            )
-            return "Protection On" in result.stdout
-        elif system == "Darwin": # macOS
-            result = subprocess.run(
-                ["fdesetup", "status"],
-                capture_output=True, text=True, check=True
-            )
-            return "FileVault is On." in result.stdout
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        return False
-    return False
+## Getting Started
 
-def check_antivirus():
-    """Checks for common antivirus processes. NOTE: This is a simplified check."""
-    system = platform.system()
-    antivirus_processes = []
-    if system == "Windows":
-        antivirus_processes = ["MsMpEng.exe", "avgsvc.exe", "avguard.exe", "bdagent.exe"]
-        cmd = 'tasklist'
-    elif system == "Darwin": # macOS
-        antivirus_processes = ["Avast", "AVG", "Bitdefender", "Sophos"]
-        cmd = 'ps aux'
-    else: # Linux
-        return False
+Follow these instructions to set up and run the project on your local machine.
 
-    try:
-        result = subprocess.run(cmd, capture_output=True, text=True, check=True, shell=True)
-        running_processes = result.stdout
-        for av in antivirus_processes:
-            if av.lower() in running_processes.lower():
-                return True
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        return False
-    return False
+### 1. Prerequisites
 
-def check_sleep_settings():
-    """Checks if inactivity sleep is <= 10 minutes. NOTE: This is a simplified check."""
-    system = platform.system()
-    try:
-        if system == "Windows":
-            result = subprocess.run(
-                ["powercfg", "/q"],
-                capture_output=True, text=True, check=True, shell=True
-            )
-            for line in result.stdout.splitlines():
-                if "SUB_SLEEP" in line and "hibernate" not in line.lower():
-                    parts = line.split()
-                    hex_val = parts[-1]
-                    seconds = int(hex_val, 16)
-                    minutes = seconds / 60
-                    return minutes <= 10
-        elif system == "Darwin": # macOS
-            result = subprocess.run(
-                ["pmset", "-g"],
-                capture_output=True, text=True, check=True
-            )
-            for line in result.stdout.splitlines():
-                if " sleep" in line and "displaysleep" not in line:
-                    parts = line.strip().split()
-                    minutes = int(parts[1])
-                    return minutes > 0 and minutes <= 10
-    except (subprocess.CalledProcessError, FileNotFoundError, ValueError):
-        return False
-    return False
+Ensure you have the following software installed:
+* [Node.js](https://nodejs.org/) (which includes npm)
+* [Python](https://www.python.org/)
+* [Git](https://git-scm.com/)
 
-def run_all_checks():
-    """Runs all system health checks and returns a dictionary."""
-    print("Running checks...")
-    info = {
-        "is_encrypted": check_disk_encryption(),
-        "os_version": f"{platform.system()} {platform.release()}",
-        "is_antivirus_running": check_antivirus(),
-        "sleep_minutes_compliant": check_sleep_settings(),
-    }
-    print(f"Checks complete: {info}")
-    return info
+### 2. Firebase Setup (Required)
 
+The project uses a free Google Firebase project for its database.
 
-# --- MAIN DAEMON LOOP (UPDATED) ---
+1.  **Create a Firebase Project**:
+    * Go to the [Firebase Console](https://console.firebase.google.com/) and create a new, free project.
+2.  **Set Up Firestore**:
+    * Inside your project, navigate to **Build > Firestore Database**.
+    * Click **"Create database"** and choose to start in **Test mode**.
+3.  **Get Service Account Key**:
+    * In your project settings (click the ⚙️ icon), go to the **Service accounts** tab.
+    * Click **"Generate new private key"**.
+    * A JSON file will be downloaded. **Rename this file to `serviceAccountKey.json`**.
 
-def main():
-    """The main function that runs the daemon loop."""
-    print("--- System Health Utility (Always Reporting) ---")
-    machine_id = get_machine_id()
-    print(f"Machine ID: {machine_id}")
-    
-    while True:
-        current_state = run_all_checks()
+### 3. Local Installation
 
-        # The check 'if current_state != last_state:' has been removed.
-        # This block will now run every time.
-        print("Reporting to server...")
-        payload = {
-            "machine_id": machine_id,
-            "os": platform.system(),
-            "system_info": current_state
-        }
-        try:
-            response = requests.post(API_ENDPOINT, json=payload)
-            response.raise_for_status()
-            print(f"Successfully reported to server. Status: {response.status_code}")
-        except requests.exceptions.RequestException as e:
-            print(f"ERROR: Could not report to server. {e}")
+1.  **Clone the Repository**:
+    ```bash
+    git clone [https://github.com/Sarry000/system-health-dashboard.git](https://github.com/Sarry000/system-health-dashboard.git)
+    cd system-health-dashboard
+    ```
 
-        print(f"Waiting for {CHECK_INTERVAL_SECONDS} seconds before next check.")
-        time.sleep(CHECK_INTERVAL_SECONDS)
+2.  **Set Up the Backend**:
+    * Move the `serviceAccountKey.json` file you downloaded into the `system-local-backend` folder.
+    * Navigate to the backend directory and install dependencies:
+        ```bash
+        cd system-local-backend
+        npm install
+        ```
 
-if __name__ == "__main__":
-    main()
+3.  **Set Up the Frontend**:
+    * Navigate to the frontend directory and install dependencies:
+        ```bash
+        cd ../system-frontend
+        npm install
+        ```
+
+4.  **Set Up the Python Utility**:
+    * Navigate to the Python utility directory:
+        ```bash
+        cd ../system-utility-python
+        ```
+    * Create and activate a virtual environment:
+        ```bash
+        # On Windows
+        python -m venv venv
+        .\venv\Scripts\activate
+        ```
+    * Install required packages:
+        ```bash
+        pip install requests
+        ```
+
+---
+
+## How to Run the Application
+
+To run the project, you need to have **three separate terminals** open and running at the same time.
+
+#### Terminal 1: Start the Backend Server
+```bash
+# Navigate to the backend folder
+cd path/to/system-local-backend
+
+# Start the server
+node index.js
+```
+*(You should see the message: ✅ Local server running on http://localhost:3001)*
+
+#### Terminal 2: Start the Frontend Dashboard
+```bash
+# Navigate to the frontend folder
+cd path/to/system-frontend
+
+# Start the development server
+npm run dev
+```
+*(This will open the dashboard in your browser, usually at http://localhost:5173)*
+
+#### Terminal 3: Start the Python Utility
+```bash
+# Navigate to the utility folder
+cd path/to/system-utility-python
+
+# Activate the virtual environment (if not already active)
+.\venv\Scripts\activate
+
+# Run the script
+python utility.py
+```
+*(This will begin collecting and sending health data to your server.)*
+
+You should now see your machine's data appear on the dashboard.
+
+---
+
+## Project Architecture
+
+The system is composed of three independent components that work together:
+
+1.  **The Python Utility**: Runs on a client machine. It periodically checks system settings using native OS commands, packages the results into a JSON payload, and sends it to the backend server's API endpoint.
+2.  **The Node.js Backend**: Acts as the central hub. It receives the JSON data from any number of utilities, authenticates with the Firestore database using a secure service account key, and saves the data. It also exposes an endpoint for the frontend to fetch this data.
+3.  **The React Frontend**: The user-facing dashboard. It polls the backend server for the latest data and uses it to render the summary cards and the machine status table, providing a clear and up-to-date view of the system's health.
