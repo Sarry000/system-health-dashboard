@@ -1,0 +1,16 @@
+# Ignore the secret Firebase key
+system-local-backend/serviceAccountKey.json
+
+# Ignore Node.js dependency folders
+system-local-backend/node_modules/
+system-frontend/node_modules/
+
+# Ignore Python virtual environment
+system-utility-python/venv/
+
+# Ignore Python cache files
+system-utility-python/__pycache__/
+system-utility-python/*.pyc
+
+# Ignore local state file
+system-utility-python/state.json
