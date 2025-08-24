@@ -2,9 +2,6 @@
 
 This project is a complete, end-to-end system for monitoring the security compliance of multiple computers from a central web-based dashboard. It consists of a cross-platform client utility, a backend API server, and a frontend admin dashboard.
 
-![Dashboard Screenshot](https://i.imgur.com/your-screenshot-url.png)
-*(Note: You will need to take a screenshot of your final dashboard, upload it to a site like [Imgur](https://imgur.com/upload), and replace the URL above.)*
-
 ---
 
 ## Features
